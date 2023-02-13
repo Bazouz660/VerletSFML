@@ -24,6 +24,8 @@
                 const sf::Vector2f& getPosition() const;
                 void setPosition(const sf::Vector2f& newPosition);
 
+                bool collide(const VerletObject& other) const;
+
                 void move(const sf::Vector2f& offset);
 
                 const sf::Vector2f& getAcceleration() const;

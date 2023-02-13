@@ -12,7 +12,7 @@ static sf::Vector2f gravity = {0.0f, 1000.f};
 
 vle::Solver::Solver(std::vector<std::unique_ptr<VerletObject>>& objects,
     std::vector<std::unique_ptr<Link>>& links, unsigned int rate)
-: m_objects(objects), m_links(links)
+: m_objects(objects), m_links(links), m_grid({1920, 1080}, GLOB_OBJ_RADIUS)
 {
     setSimulationUpdateRate(rate);
 }
@@ -39,7 +39,7 @@ void vle::Solver::update()
 
     float subDt = getStepDt();
     for (size_t i(m_substeps); i--;) {
-        updateTree();
+        updatePartionning();
         applyGravity();
         solveCollisions();
         applyConstraint();
@@ -47,11 +47,12 @@ void vle::Solver::update()
     }
 }
 
-void vle::Solver::updateTree()
+void vle::Solver::updatePartionning()
 {
-    m_tree.clear();
+    m_grid.clear();
+
     for (auto& it : m_objects) {
-        m_tree.insert(it.get());
+        m_grid.insert(it.get());
     }
 }
 
@@ -71,31 +72,52 @@ void vle::Solver::applyGravity()
 
 void vle::Solver::solveCollisions()
 {
-    float response_coef = 0.75f;
     size_t objects_count = m_objects.size();
-    // Iterate on all objects
-    for (size_t i{0}; i < objects_count; ++i) {
-        VerletObject &object_1 = *m_objects.at(i);
-        // Iterate on object involved in new collision pairs
-        std::vector<VerletObject*> found = m_tree.searchInRadius(object_1.getPosition(), object_1.getRadius() * 2);
-        for (auto& object_2 : found) {
-            if (&object_1 == object_2)
-                continue;
-            sf::Vector2f v = object_1.getPosition() - object_2->getPosition();
-            float dist2 = v.x * v.x + v.y * v.y;
-            float min_dist = object_1.getRadius() + object_2->getRadius();
-            // Check overlapping
-            if (dist2 < min_dist * min_dist) {
-                float dist = sqrt(dist2);
-                sf::Vector2f n = v / dist;
-                float mass_ratio_1 = object_1.getRadius() / (object_1.getRadius() + object_2->getRadius());
-                float mass_ratio_2 = object_2->getRadius() / (object_1.getRadius() + object_2->getRadius());
-                float delta = 0.5f * response_coef * (dist - min_dist);
-                // Update positions
-                object_1.move(-(n * (mass_ratio_2 * delta)));
-                object_2->move((n * (mass_ratio_1 * delta)));
+
+
+    for (int x{1}; x < m_grid.getDimensions().x - 1; ++x) {
+        for (int y{1}; y < m_grid.getDimensions().y - 1; ++y) {
+            auto& currentCell = m_grid.get({x, y});
+
+            for (int dx{-1}; dx <= 1; ++dx) {
+                for (int dy{-1}; dy <= 1; ++dy) {
+                    auto& otherCell = m_grid.get({x + dx, y + dy});
+                    checkCellsCollisions(currentCell, otherCell);
+                }
             }
         }
+    }
+}
+
+void vle::Solver::checkCellsCollisions(vle::Grid::Cell& cell1, vle::Grid::Cell& cell2)
+{
+    for (auto& objIdx1 : cell1.objects) {
+        for (auto& objIdx2 : cell2.objects) {
+            if (objIdx1 != objIdx2) {
+                if (objIdx1->collide(*objIdx2))
+                    solveCollision(*objIdx1, *objIdx2);
+            }
+        }
+    }
+}
+
+void vle::Solver::solveCollision(VerletObject& obj1, VerletObject& obj2)
+{
+    float response_coef = 0.75f;
+
+    sf::Vector2f v = obj1.getPosition() - obj2.getPosition();
+    float dist2 = v.x * v.x + v.y * v.y;
+    float min_dist = obj1.getRadius() + obj2.getRadius();
+    // Check overlapping
+    if (dist2 < min_dist * min_dist) {
+        float dist = sqrt(dist2);
+        sf::Vector2f n = v / dist;
+        float mass_ratio_1 = obj1.getRadius() / (obj1.getRadius() + obj2.getRadius());
+        float mass_ratio_2 = obj2.getRadius() / (obj1.getRadius() + obj2.getRadius());
+        float delta = 0.5f * response_coef * (dist - min_dist);
+        // Update positions
+        obj1.move(-(n * (mass_ratio_2 * delta)));
+        obj2.move((n * (mass_ratio_1 * delta)));
     }
 }
 

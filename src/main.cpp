@@ -12,5 +12,10 @@ int main(int argc, char **argv)
     vle::Engine engine;
 
     engine.init();
-    engine.run();
+
+    try {
+        engine.run();
+    } catch (const std::exception& e) {
+        std::cout << e.what() << std::endl;
+    }
 }

@@ -26,6 +26,13 @@ VerletObject::~VerletObject()
 {
 }
 
+bool VerletObject::collide(const VerletObject& other) const
+{
+    double squared_distance = pow(m_position.x - other.getPosition().x, 2) + pow(m_position.y - other.getPosition().y, 2);
+    double squared_sum_of_radii = pow(getRadius() + other.getRadius(), 2);
+    return squared_distance < squared_sum_of_radii;
+}
+
 void VerletObject::updatePosition(float dt)
 {
     if (isFixed())

@@ -46,7 +46,7 @@ void Engine::init()
     int nb_links = 20;
 
     for (int i = 0; i < nb_links; i++)
-        m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {500.f + (i * 30), 500}, 15, sf::Color::White)));
+        m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {500.f + (i * 30), 500}, GLOB_OBJ_RADIUS, sf::Color::White)));
 
     m_objects.at(0)->setFixed(true);
     m_objects.at(nb_links - 1)->setFixed(true);
@@ -115,7 +115,7 @@ void Engine::run()
             static float angle = 0;
 
             m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {700, 200},
-                numberGenerator::between(2, 15), getRainbow(spawnerTick))));
+                GLOB_OBJ_RADIUS, getRainbow(spawnerTick))));
             m_objects.back()->accelerate({std::cos(spawnerTick) * 23000000 * m_deltaTime, std::sin(spawnerTick) * 20000000 * m_deltaTime});
             m_objNbText.setString("Objects: " + std::to_string(m_objects.size()));
             angle += 0.0174533;
