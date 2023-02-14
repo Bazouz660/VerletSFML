@@ -29,6 +29,7 @@
                 void applyGravity();
                 void updatePosition(float dt);
                 void solveCollisions();
+                void solveCollisionsThread(unsigned int start, unsigned int end);
                 void updateTree();
                 float getStepDt() const;
                 float getTime() const;
@@ -38,10 +39,11 @@
                 std::vector<std::unique_ptr<Link>>& m_links;
                 sf::Vector2f m_constraintCenter = {800.0f, 450.0f};
                 KdTree m_tree;
-                float m_constraintRadius = 400.0f;
+                float m_constraintRadius = 500.0f;
                 int m_substeps = 8;
                 float m_frameDt;
                 float m_time;
+                unsigned int checks;
         };
     }
 #endif /* !SOLVER_HPP_ */

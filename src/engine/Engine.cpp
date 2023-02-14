@@ -115,7 +115,7 @@ void Engine::run()
             static float angle = 0;
 
             m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {700, 200},
-                numberGenerator::between(2, 15), getRainbow(spawnerTick))));
+                numberGenerator::between(2, 10), getRainbow(spawnerTick))));
             m_objects.back()->accelerate({std::cos(spawnerTick) * 23000000 * m_deltaTime, std::sin(spawnerTick) * 20000000 * m_deltaTime});
             m_objNbText.setString("Objects: " + std::to_string(m_objects.size()));
             angle += 0.0174533;
