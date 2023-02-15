@@ -7,6 +7,9 @@
 
 #include "Solver.hpp"
 #include "MathVec2.hpp"
+#include <functional>
+#include <thread>
+#include <execution>
 
 static sf::Vector2f gravity = {0.0f, 1000.f};
 
@@ -72,19 +75,73 @@ void vle::Solver::applyGravity()
 
 void vle::Solver::solveCollisions()
 {
-    size_t objects_count = m_objects.size();
 
+    auto [width, height] = m_grid.getDimensions();
 
-    for (int x{1}; x < m_grid.getDimensions().x - 1; ++x) {
-        for (int y{1}; y < m_grid.getDimensions().y - 1; ++y) {
-            auto& currentCell = m_grid.get({x, y});
+    std::vector<std::unique_ptr<std::thread>> threads;
+    int numThreads = std::thread::hardware_concurrency();
+    int start = 0;
+    int end = width / numThreads;
 
-            for (int dx{-1}; dx <= 1; ++dx) {
-                for (int dy{-1}; dy <= 1; ++dy) {
-                    auto& otherCell = m_grid.get({x + dx, y + dy});
-                    checkCellsCollisions(currentCell, otherCell);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(std::unique_ptr<std::thread>(new std::thread (&vle::Solver::threadFunction, this, start, end)));
+        start = end;
+        end += width / numThreads;
+    }
+
+    for (auto& thread : threads) {
+        thread->join();
+    }
+
+    return;
+
+    for (auto& row : m_grid.getCells()) {
+        for (auto& currentCell : *row) {
+            auto [x, y] = currentCell->position;
+            if (x > 0 && y > 0 && x < width - 1 && y < height - 1) {
+                for (int dx{-1}; dx <= 1; ++dx) {
+                    for (int dy{-1}; dy <= 1; ++dy) {
+                        auto& otherCell = m_grid.get({x + dx, y + dy});
+                        checkCellsCollisions(*currentCell, otherCell);
+                    }
                 }
             }
+        }
+    }
+}
+
+void vle::Solver::threadFunction(int startRow, int endRow) {
+    auto [width, height] = m_grid.getDimensions();
+    std::for_each(m_grid.getCells().begin() + startRow, m_grid.getCells().begin() + endRow, [this, width, height](const auto& row) {
+        for (auto& col : *row) {
+            auto [x, y] = col->position;
+            if (x > 0 && y > 0 && x < width - 1 && y < height - 1) {
+                for (int dx{-1}; dx <= 1; ++dx) {
+                    for (int dy{-1}; dy <= 1; ++dy) {
+                        auto& otherCell = m_grid.get({x + dx, y + dy});
+                        checkCellsCollisions(*col, otherCell);
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+void vle::Solver::drawGrid(sf::RenderTarget& target)
+{
+    for (auto& rows : m_grid.getCells()) {
+        for (auto& cols : *rows.get()) {
+            sf::RectangleShape shape;
+            shape.setPosition(sf::Vector2f(cols->position * m_grid.getCellSize()));
+            shape.setSize({(float)m_grid.getCellSize(), (float)m_grid.getCellSize()});
+            shape.setOrigin(shape.getSize().x * 0.5, shape.getSize().y * 0.5);
+            shape.move(shape.getSize().x * 0.5, shape.getSize().y * 0.5);
+            shape.setFillColor(sf::Color::Transparent);
+            shape.setOutlineColor(sf::Color::Blue);
+            shape.setOutlineThickness(1);
+
+            target.draw(shape);
         }
     }
 }
@@ -94,8 +151,7 @@ void vle::Solver::checkCellsCollisions(vle::Grid::Cell& cell1, vle::Grid::Cell& 
     for (auto& objIdx1 : cell1.objects) {
         for (auto& objIdx2 : cell2.objects) {
             if (objIdx1 != objIdx2) {
-                if (objIdx1->collide(*objIdx2))
-                    solveCollision(*objIdx1, *objIdx2);
+                solveCollision(*objIdx1, *objIdx2);
             }
         }
     }
@@ -126,22 +182,35 @@ void vle::Solver::applyConstraint()
     for (auto& link : m_links) {
         link->apply();
     }
-    for (auto &obj : m_objects) {
-        const sf::Vector2f v = m_constraintCenter - obj->getPosition();
-        const float dist = mathVec2::length(v);
-        if (dist > (m_constraintRadius - obj->getRadius())) {
-            const sf::Vector2f n = v / dist;
-            obj->setPosition(m_constraintCenter - n * (m_constraintRadius - obj->getRadius()));
-        }
+for (auto &obj : m_objects) {
+    const sf::Vector2f pos = obj->getPosition();
+    const float radius = obj->getRadius();
+    const sf::Vector2f constraintMin = m_constraintCenter - sf::Vector2f(m_constraintSize.x/2, m_constraintSize.y/2);
+    const sf::Vector2f constraintMax = m_constraintCenter + sf::Vector2f(m_constraintSize.x/2, m_constraintSize.y/2);
+
+    // Check if the object is outside the constraint rectangle
+    if (obj->getPosition().x - radius < constraintMin.x) {
+        obj->setPosition({constraintMin.x + radius, obj->getPosition().y});
+    }
+    if (obj->getPosition().x + radius > constraintMax.x) {
+        obj->setPosition({constraintMax.x - radius, obj->getPosition().y});
+    }
+    if (obj->getPosition().y - radius < constraintMin.y) {
+        obj->setPosition({obj->getPosition().x, constraintMin.y + radius});
+    }
+    if (obj->getPosition().y + radius > constraintMax.y) {
+        obj->setPosition({obj->getPosition().x, constraintMax.y - radius});
     }
 }
 
-float vle::Solver::getConstraintRadius()
-{
-    return m_constraintRadius;
 }
 
-sf::Vector2f vle::Solver::getConstraintPosition()
+sf::Vector2f vle::Solver::getConstraintSize()
+{
+    return m_constraintSize;
+}
+
+sf::Vector2f vle::Solver::getConstraintCenter()
 {
     return m_constraintCenter;
 }

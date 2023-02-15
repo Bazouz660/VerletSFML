@@ -7,6 +7,11 @@
 
 #include "Grid.hpp"
 
+vle::Grid::Cell::Cell(sf::Vector2u pos, unsigned int size)
+: position(pos), size(size)
+{
+}
+
 unsigned int vle::Grid::index2dTo1d(const sf::Vector2u& index) const
 {
     return (index.y * m_dimensions.y) + index.x;
@@ -22,18 +27,15 @@ sf::Vector2u vle::Grid::index1dTo2d(const unsigned int index) const
 
 vle::Grid::Grid(const sf::Vector2u& dimensions, unsigned int cellSize)
 {
-    m_dimensions = dimensions / cellSize;
-    m_cellSize = cellSize;
+    m_cellSize = cellSize * 2;
+    m_dimensions = dimensions / m_cellSize;
     m_nbCells = m_dimensions.x * m_dimensions.y;
 
-    for (int i = 0; i < m_nbCells + 1; i++) {
-        m_cells.push_back(std::unique_ptr<Cell>(new Cell));
-    }
-
-    for (int i = 0; i < m_nbCells; i++) {
-        m_cells.at(i)->objects.clear();
-        m_cells.at(i)->size = cellSize;
-        m_cells.at(i)->position = index1dTo2d(i) * cellSize;
+    for (int x = 0; x < m_dimensions.x; x++) {
+        m_cells.push_back(std::unique_ptr<std::vector<std::unique_ptr<Cell>>>(new std::vector<std::unique_ptr<Cell>>));
+        for (int y = 0; y < m_dimensions.y; y++) {
+            m_cells.at(x)->push_back(std::unique_ptr<Cell>(new Cell({x, y}, m_cellSize)));
+        }
     }
 }
 
@@ -49,8 +51,11 @@ unsigned int vle::Grid::getNbCells() const
 
 void vle::Grid::clear()
 {
-    for (int i = 0; i < m_nbCells; i++)
-        m_cells.at(i)->objects.clear();
+    for (auto& cellsX : m_cells) {
+        for (auto& cellsY : *cellsX.get()) {
+            cellsY->objects.clear();
+        }
+    }
 }
 
 sf::Vector2u vle::Grid::getDimensions() const
@@ -64,76 +69,21 @@ void vle::Grid::insert(VerletObject* object)
 
     position = {position.x / (int)m_cellSize, position.y / (int)m_cellSize};
 
-    //std::cout << "Inserting at position: x" << position.x << ", y" << position.y << std::endl;
+    //std::cout << "Inserting " << position.x << " " << position.y << std::endl;
+//
+    //std::cout << "m_cells.x: " << m_cells.size() << " " << "m_cells.y: " << m_cells.at(0)->size() << std::endl;
 
-    if (position.x > 0 && position.y > 0 && position.x < (m_dimensions.x * m_cellSize)
-        && position.y < (m_dimensions.y * m_cellSize)) {
-        m_cells.at(index2dTo1d(sf::Vector2u(position)))->objects.push_back(object);
-    }
+    m_cells.at(position.x)->at(position.y)->objects.push_back(object);
 }
 
 vle::Grid::Cell& vle::Grid::get(const sf::Vector2u &position) const
 {
-    return *m_cells.at(index2dTo1d(position)).get();
+    return *m_cells.at(position.x)->at(position.y).get();
 }
 
-vle::Grid::Cell& vle::Grid::get(int index) const
+const std::vector<std::unique_ptr<std::vector<std::unique_ptr<vle::Grid::Cell>>>>& vle::Grid::getCells() const
 {
-    return *m_cells.at(index).get();
-}
-
-std::vector<vle::VerletObject*> vle::Grid::search(sf::Vector2u position) const
-{
-    std::vector<VerletObject*> result;
-    std::vector<VerletObject*> tmp;
-
-    tmp = m_cells.at(index2dTo1d(position))->objects;
-    result.insert(result.end(), tmp.begin(), tmp.end());
-
-    //std::cout << position.x << " " << position.y << std::endl;
-
-    if (position.x + 1 < m_dimensions.x) {
-        tmp = m_cells.at(index2dTo1d({position.x + 1, position.y}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-    if (position.x + 1 < m_dimensions.x && position.y + 1 < m_dimensions.y) {
-        tmp = m_cells.at(index2dTo1d({position.x + 1, position.y + 1}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-    if (position.x > 0 && position.y > 0) {
-        tmp = m_cells.at(index2dTo1d({position.x - 1, position.y - 1}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-    if (position.y + 1 < m_dimensions.y) {
-        tmp = m_cells.at(index2dTo1d({position.x, position.y + 1}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-    if (position.x + 1 < m_dimensions.x && position.y > 0) {
-        tmp = m_cells.at(index2dTo1d({position.x + 1, position.y - 1}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-    if (position.x > 0 && position.y + 1 < m_dimensions.y) {
-        tmp = m_cells.at(index2dTo1d({position.x - 1, position.y + 1}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-
-    if (position.x > 0) {
-        tmp = m_cells.at(index2dTo1d({position.x - 1, position.y}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-    if (position.y > 0) {
-        tmp = m_cells.at(index2dTo1d({position.x, position.y - 1}))->objects;
-        result.insert(result.end(), tmp.begin(), tmp.end());
-    }
-
-    return result;
+    return m_cells;
 }
 
 vle::Grid::~Grid()

@@ -45,14 +45,14 @@ void Engine::init()
 
     int nb_links = 20;
 
-    for (int i = 0; i < nb_links; i++)
-        m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {500.f + (i * 30), 500}, GLOB_OBJ_RADIUS, sf::Color::White)));
-
-    m_objects.at(0)->setFixed(true);
-    m_objects.at(nb_links - 1)->setFixed(true);
-
-    for (int i = 0; i < nb_links - 1; i++)
-        m_links.push_back(std::unique_ptr<Link>(new Link(*m_objects.at(i).get(), *m_objects.at(i + 1).get(), 32)));
+    //for (int i = 0; i < nb_links; i++)
+    //    m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {500.f + (i * 30), 500}, GLOB_OBJ_RADIUS, sf::Color::White)));
+//
+    //m_objects.at(0)->setFixed(true);
+    //m_objects.at(nb_links - 1)->setFixed(true);
+//
+    //for (int i = 0; i < nb_links - 1; i++)
+    //    m_links.push_back(std::unique_ptr<Link>(new Link(*m_objects.at(i).get(), *m_objects.at(i + 1).get(), 32)));
 }
 
 void Engine::computeFrameTime()
@@ -110,31 +110,34 @@ void Engine::run()
         }
 
 
-        if (m_clock.getElapsedTime().asSeconds() > spawnerTick + 0.02 && m_deltaTime < 0.030) {
+        if (m_clock.getElapsedTime().asSeconds() > spawnerTick + 0.05) {
             spawnerTick = m_clock.getElapsedTime().asSeconds();
             static float angle = 0;
 
-            m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {700, 200},
-                GLOB_OBJ_RADIUS, getRainbow(spawnerTick))));
-            m_objects.back()->accelerate({std::cos(spawnerTick) * 23000000 * m_deltaTime, std::sin(spawnerTick) * 20000000 * m_deltaTime});
+            for (int i = 0; i < 5; i++) {
+                m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {700, 100 + ((GLOB_OBJ_RADIUS * 2.5) * i)},
+                    GLOB_OBJ_RADIUS, getRainbow(spawnerTick))));
+                m_objects.back()->accelerate({25000000 * m_deltaTime, 3000000 * m_deltaTime});
+            }
             m_objNbText.setString("Objects: " + std::to_string(m_objects.size()));
             angle += 0.0174533;
         }
 
         m_solver.update();
 
-        sf::CircleShape solverConstraintShape;
+        sf::RectangleShape solverConstraintShape;
         solverConstraintShape.setFillColor(sf::Color::Black);
-        solverConstraintShape.setPointCount(100);
-        solverConstraintShape.setPosition(m_solver.getConstraintPosition());
-        solverConstraintShape.setRadius(m_solver.getConstraintRadius());
-        solverConstraintShape.setOrigin(solverConstraintShape.getRadius(), solverConstraintShape.getRadius());
+        solverConstraintShape.setPosition(m_solver.getConstraintCenter());
+        solverConstraintShape.setSize(m_solver.getConstraintSize());
+        solverConstraintShape.setOrigin(solverConstraintShape.getSize().x * 0.5, solverConstraintShape.getSize().y * 0.5);
 
         m_window->draw(solverConstraintShape);
 
         for (auto& object : m_objects) {
             object->draw(*m_window);
         }
+
+        //m_solver.drawGrid(*m_window);
 
         m_window->draw(m_fpsText);
         m_window->draw(m_objNbText);

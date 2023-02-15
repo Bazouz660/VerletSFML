@@ -14,10 +14,12 @@
     namespace vle {
         class Grid {
             public:
-                struct Cell {
-                    std::vector<VerletObject*>objects;
-                    sf::Vector2u position;
-                    unsigned int size;
+                class Cell {
+                    public:
+                        Cell(sf::Vector2u pos, unsigned int size);
+                        std::vector<VerletObject*>objects;
+                        sf::Vector2u position;
+                        unsigned int size;
                 };
                 Grid(const sf::Vector2u& dimensions, unsigned int cellSize);
                 ~Grid();
@@ -31,12 +33,13 @@
                 std::vector<VerletObject*> search(sf::Vector2u position) const;
                 unsigned int index2dTo1d(const sf::Vector2u& index) const;
                 sf::Vector2u index1dTo2d(const unsigned int index) const;
+                const std::vector<std::unique_ptr<std::vector<std::unique_ptr<Cell>>>>& getCells() const;
 
             private:
                 unsigned int m_cellSize;
                 unsigned int m_nbCells;
                 sf::Vector2u m_dimensions;
-                std::vector<std::unique_ptr<Cell>> m_cells;
+                std::vector<std::unique_ptr<std::vector<std::unique_ptr<Cell>>>> m_cells;
         };
     }
 
