@@ -69,9 +69,8 @@ void vle::Grid::insert(VerletObject* object)
 
     position = {position.x / (int)m_cellSize, position.y / (int)m_cellSize};
 
-    //std::cout << "Inserting " << position.x << " " << position.y << std::endl;
-//
-    //std::cout << "m_cells.x: " << m_cells.size() << " " << "m_cells.y: " << m_cells.at(0)->size() << std::endl;
+    if (position.x < 0 || position.y < 0 || position.x >= m_dimensions.x || position.y >= m_dimensions.y)
+        return;
 
     m_cells.at(position.x)->at(position.y)->objects.push_back(object);
 }

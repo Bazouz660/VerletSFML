@@ -73,6 +73,11 @@ void vle::Solver::applyGravity()
     }
 }
 
+float vle::Solver::getSimulationUpdateRate() const
+{
+    return m_frameDt;
+}
+
 void vle::Solver::solveCollisions()
 {
 
@@ -185,8 +190,8 @@ void vle::Solver::applyConstraint()
 for (auto &obj : m_objects) {
     const sf::Vector2f pos = obj->getPosition();
     const float radius = obj->getRadius();
-    const sf::Vector2f constraintMin = m_constraintCenter - sf::Vector2f(m_constraintSize.x/2, m_constraintSize.y/2);
-    const sf::Vector2f constraintMax = m_constraintCenter + sf::Vector2f(m_constraintSize.x/2, m_constraintSize.y/2);
+    const sf::Vector2f constraintMin = m_constraintCenter - sf::Vector2f(m_constraintSize.x * 0.5, m_constraintSize.y * 0.5);
+    const sf::Vector2f constraintMax = m_constraintCenter + sf::Vector2f(m_constraintSize.x * 0.5, m_constraintSize.y * 0.5);
 
     // Check if the object is outside the constraint rectangle
     if (obj->getPosition().x - radius < constraintMin.x) {

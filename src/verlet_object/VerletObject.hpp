@@ -18,7 +18,6 @@
                 ~VerletObject();
                 void updatePosition(float deltaTime);
                 void accelerate(sf::Vector2f acc);
-                void resolveCollision(VerletObject& other);
 
                 // Getters and setters for position, velocity, and mass
                 const sf::Vector2f& getPosition() const;
@@ -42,16 +41,21 @@
 
                 sf::Vector2f getLastPosition() const;
 
-                void draw(sf::RenderTarget& target);
+                sf::Vertex* getVertices() const;
+
             private:
                 float m_mass;
                 float m_radius;
+                float m_shapeSize;
                 bool m_fixed;
                 sf::Color m_color;
                 sf::Vector2f m_acceleration;
                 sf::Vector2f m_position;
                 sf::Vector2f m_lastPosition;
-                sf::CircleShape m_shape;
+                sf::Vertex m_vertices[4];
+
+            private:
+                void updateVertices();
         };
     }
 #endif /* !VERLETOBJECT_HPP_ */

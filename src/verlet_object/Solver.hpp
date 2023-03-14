@@ -25,6 +25,7 @@
                 sf::Vector2f getConstraintSize();
                 void setSimulationUpdateRate(unsigned int rate);
                 void drawGrid(sf::RenderTarget& target);
+                float getSimulationUpdateRate() const;
 
             private:
                 void solveCollision(VerletObject& obj1, VerletObject& obj2);
@@ -48,7 +49,7 @@
                 sf::Vector2f m_constraintSize = {1800.0f, 900.0f};
                 //KdTree m_tree;
                 Grid m_grid;
-                int m_substeps = 8;
+                int m_substeps = 6;
                 float m_frameDt;
                 float m_time;
         };

@@ -8,13 +8,20 @@
 #include "Engine.hpp"
 #include "Solver.hpp"
 #include "Random.hpp"
+#include "ResourceManager.hpp"
+#include "DynamicBlur.hpp"
 
 namespace vle {
+
+sf::RenderTexture bloom;
+Blur blur({1920, 1080}, 4);
 
 Engine::Engine()
 : m_solver(m_objects, m_links, 60)
 {
-    m_font.loadFromFile("assets/font/debug_font.ttf");
+    m_font.loadFromFile("../assets/font/debug_font.ttf");
+
+    bloom.create(1920, 1080);
 
     m_fpsText.setFont(m_font);
     m_fpsText.setPosition(0, 0);
@@ -43,16 +50,16 @@ void Engine::init()
 
 
 
-    int nb_links = 20;
+    int nb_links = 100;
 
-    //for (int i = 0; i < nb_links; i++)
-    //    m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {500.f + (i * 30), 500}, GLOB_OBJ_RADIUS, sf::Color::White)));
+    for (int i = 0; i < nb_links; i++)
+        m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {500.f + (i * 10), 500}, GLOB_OBJ_RADIUS, sf::Color::White)));
 //
-    //m_objects.at(0)->setFixed(true);
-    //m_objects.at(nb_links - 1)->setFixed(true);
+    m_objects.at(0)->setFixed(true);
+    m_objects.at(nb_links - 1)->setFixed(true);
 //
-    //for (int i = 0; i < nb_links - 1; i++)
-    //    m_links.push_back(std::unique_ptr<Link>(new Link(*m_objects.at(i).get(), *m_objects.at(i + 1).get(), 32)));
+    for (int i = 0; i < nb_links - 1; i++)
+        m_links.push_back(std::unique_ptr<Link>(new Link(*m_objects.at(i).get(), *m_objects.at(i + 1).get(), GLOB_OBJ_RADIUS * 1.5)));
 }
 
 void Engine::computeFrameTime()
@@ -114,10 +121,10 @@ void Engine::run()
             spawnerTick = m_clock.getElapsedTime().asSeconds();
             static float angle = 0;
 
-            for (int i = 0; i < 5; i++) {
-                m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {700, 100 + ((GLOB_OBJ_RADIUS * 2.5) * i)},
+            for (int i = 0; i < 15; i++) {
+                m_objects.push_back(std::unique_ptr<VerletObject>(new VerletObject(5, {300, 200 + ((GLOB_OBJ_RADIUS * 2) * i)},
                     GLOB_OBJ_RADIUS, getRainbow(spawnerTick))));
-                m_objects.back()->accelerate({25000000 * m_deltaTime, 3000000 * m_deltaTime});
+                m_objects.back()->accelerate({30000000 * m_solver.getSimulationUpdateRate(), 0});
             }
             m_objNbText.setString("Objects: " + std::to_string(m_objects.size()));
             angle += 0.0174533;
@@ -133,9 +140,28 @@ void Engine::run()
 
         m_window->draw(solverConstraintShape);
 
+        sf::VertexArray vertexArray(sf::Quads, m_objects.size() * 4);
+
         for (auto& object : m_objects) {
-            object->draw(*m_window);
+            vertexArray.append(object->getVertices()[0]);
+            vertexArray.append(object->getVertices()[1]);
+            vertexArray.append(object->getVertices()[2]);
+            vertexArray.append(object->getVertices()[3]);
         }
+
+        sf::RenderStates states;
+
+        states = sf::RenderStates::Default;
+        states.texture = vle::ResourceManager::getInstance().getTexture("circle");
+
+        bloom.clear(sf::Color::Black);
+
+        bloom.draw(vertexArray, states);
+
+        bloom.display();
+
+        m_window->draw(blur.apply(bloom.getTexture()));
+        m_window->draw(vertexArray, states);
 
         //m_solver.drawGrid(*m_window);
 

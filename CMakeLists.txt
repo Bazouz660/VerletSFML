@@ -4,7 +4,7 @@ project(PhysicsEngine)
 set(CMAKE_CXX_STANDARD 20)
 
 # Add the SFML library
-find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
+find_package(SFML 2.5 COMPONENTS graphics window system audio REQUIRED)
 include_directories(${SFML_INCLUDE_DIR})
 include_directories("include")
 file(GLOB_RECURSE header_files "src/*.hpp")
@@ -21,4 +21,4 @@ file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 add_executable(PhysicsEngine ${SOURCE_FILES})
 
 # Link the SFML library
-target_link_libraries(PhysicsEngine PRIVATE sfml-graphics sfml-window sfml-system)
+target_link_libraries(PhysicsEngine PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)

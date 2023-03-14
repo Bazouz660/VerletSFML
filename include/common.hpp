@@ -18,6 +18,6 @@
     #include <SFML/Audio.hpp>
     #include <SFML/Config.hpp>
 
-    #define GLOB_OBJ_RADIUS 8
+    #define GLOB_OBJ_RADIUS 4
 
 #endif /* !COMMON_HPP_ */

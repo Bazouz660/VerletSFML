@@ -6,6 +6,7 @@
 */
 
 #include "VerletObject.hpp"
+#include "ResourceManager.hpp"
 
 namespace vle {
 
@@ -14,12 +15,28 @@ VerletObject::VerletObject(float m_mass, sf::Vector2f pos, float radius, sf::Col
 {
     m_fixed = false;
     m_lastPosition = pos;
-    m_position = pos;
     m_acceleration = {0, 0};
-    m_shape.setRadius(radius);
-    m_shape.setFillColor(color);
-    m_shape.setPosition(pos);
-    m_shape.setOrigin(m_radius, m_radius);
+    m_shapeSize = m_radius * 2;
+
+    sf::Texture* texture = vle::ResourceManager::getInstance().getTexture("circle");
+    sf::Vector2u textureSize = texture->getSize();
+
+    for (auto& vertex : m_vertices)
+        vertex.color = m_color;
+    m_vertices[0].texCoords = {0, 0};
+    m_vertices[1].texCoords = {textureSize.x, 0};
+    m_vertices[2].texCoords = {textureSize.x, textureSize.y};
+    m_vertices[3].texCoords = {0, textureSize.y};
+
+    m_vertices[0].position = m_position;
+    m_vertices[1].position = {m_position.x + m_shapeSize, m_position.y};
+    m_vertices[2].position = {m_position.x + m_shapeSize, m_position.y + m_shapeSize};
+    m_vertices[3].position = {m_position.x, m_position.y + m_shapeSize};
+
+    m_vertices[0].position -= {m_radius, m_radius};
+    m_vertices[1].position -= {m_radius, m_radius};
+    m_vertices[2].position -= {m_radius, m_radius};
+    m_vertices[3].position -= {m_radius, m_radius};
 }
 
 VerletObject::~VerletObject()
@@ -44,6 +61,21 @@ void VerletObject::updatePosition(float dt)
     m_position = m_position + displacement + m_acceleration * (dt * dt);
     // Reset acceleration
     m_acceleration = {};
+
+    updateVertices();
+}
+
+void VerletObject::updateVertices()
+{
+    m_vertices[0].position = m_position;
+    m_vertices[1].position = {m_position.x + m_shapeSize, m_position.y};
+    m_vertices[2].position = {m_position.x + m_shapeSize, m_position.y + m_shapeSize};
+    m_vertices[3].position = {m_position.x, m_position.y + m_shapeSize};
+
+    m_vertices[0].position -= {m_radius, m_radius};
+    m_vertices[1].position -= {m_radius, m_radius};
+    m_vertices[2].position -= {m_radius, m_radius};
+    m_vertices[3].position -= {m_radius, m_radius};
 }
 
 void VerletObject::setFixed(bool fixed)
@@ -112,11 +144,9 @@ float VerletObject::getRadius() const
     return m_radius;
 }
 
-void VerletObject::draw(sf::RenderTarget& target)
+sf::Vertex* VerletObject::getVertices() const
 {
-    m_shape.setPosition(m_position);
-
-    target.draw(m_shape);
+    return (sf::Vertex*)m_vertices;
 }
 
 }
